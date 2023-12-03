@@ -35,6 +35,13 @@ DIRS = %w(
   /usr/local
 )
 
+# Homebrew on Apple Silicon installs into /opt/hombrew
+# https://docs.brew.sh/Installation
+# On Intel Macs, it is /usr/local, so no changes necessary to DIRS
+if RbConfig::CONFIG['host_os'] =~ /darwin/i && RbConfig::CONFIG['host_cpu'] == 'arm64'
+  DIRS.unshift("/opt/homebrew")
+end
+
 if ENV["RI_DEVKIT"] && ENV["MINGW_PREFIX"] # RubyInstaller Support
   DIRS.unshift(File.join(ENV["RI_DEVKIT"], ENV["MINGW_PREFIX"]))
 end
