@@ -35,11 +35,17 @@ DIRS = %w(
   /usr/local
 )
 
-# Homebrew on Apple Silicon installs into /opt/hombrew
-# https://docs.brew.sh/Installation
-# On Intel Macs, it is /usr/local, so no changes necessary to DIRS
-if RbConfig::CONFIG['host_os'] =~ /darwin/i && RbConfig::CONFIG['host_cpu'] == 'arm64'
-  DIRS.unshift("/opt/homebrew")
+if RbConfig::CONFIG['host_os'] =~ /darwin/i
+  # Ruby below 2.7 seems to label the host CPU on Apple Silicon as aarch64
+  # 2.7 and above print is as ARM64
+  target_host_cpu = Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7') ? 'aarch64' : 'arm64'
+
+  if RbConfig::CONFIG['host_cpu'] == target_host_cpu
+    # Homebrew on Apple Silicon installs into /opt/hombrew
+    # https://docs.brew.sh/Installation
+    # On Intel Macs, it is /usr/local, so no changes necessary to DIRS
+    DIRS.unshift("/opt/homebrew")
+  end
 end
 
 if ENV["RI_DEVKIT"] && ENV["MINGW_PREFIX"] # RubyInstaller Support
