@@ -268,5 +268,9 @@ class ClientTest < TinyTds::TestCase
         )
       ).must_equal 'user'
     end
+
+    it "should fail" do
+      assert false
+    end
   end
 end
