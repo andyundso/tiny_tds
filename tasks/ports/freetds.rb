@@ -13,7 +13,6 @@ module Ports
     def configure_defaults
       opts = super
 
-      opts << '--with-pic'
       opts << '--disable-odbc'
       opts << '--with-tdsver=7.3'
 

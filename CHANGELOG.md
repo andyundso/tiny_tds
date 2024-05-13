@@ -4,6 +4,7 @@
 * Drop support for SQL Server < 2017
 * Drop support for FreeTDS < 1.0
 * Drop support for precompiled 32-bit Windows build
+* Update FreeTDS to v1.4.13, OpenSSL to v3.3.0 and libiconv to v1.17 for Windows build
 
 ## 2.1.7
 * Add Ruby 3.3 to the cross compile list
