@@ -446,6 +446,15 @@ $ rake TINYTDS_UNIT_DATASERVER=mydbserver TINYTDS_SCHEMA=sqlserver_2017
 $ rake TINYTDS_UNIT_HOST=mydb.host.net TINYTDS_SCHEMA=sqlserver_azure
 ```
 
+### Certificates
+
+If you happen to regenerate the certificates used for testing, here is the command used to generate them.
+
+```shell
+cd test/certificates
+openssl req -x509 -nodes -newkey rsa:2048 -subj '/CN=mssql.tiny.tds' -keyout mssql.key -out mssql.pem -days 365
+```
+
 ## Docker Builds
 
 If you use a [multi stage](https://docs.docker.com/develop/develop-images/multistage-build/) Docker build to assemble your gems in one phase and then copy your app and gems

@@ -361,6 +361,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        encrypted:
+          - "yes"
+          - "no"
         mssql-version:
           - 2017
           - 2019
@@ -395,13 +398,14 @@ jobs:
         run: |
           bundle exec rake build
 
-      - name: Setup MSSQL
-        uses: potatoqualitee/mssqlsuite@v1.7
-        with:
-          install: sqlengine, sqlclient
-          version: ${{ matrix.mssql-version }}
-          sa-password: "c0MplicatedP@ssword"
-          show-log: true
+      - name: Setup MSSQL without encryption
+        run: |
+          docker run -e "ACCEPT_EULA=Y" -e 'MSSQL_SA_PASSWORD=c0MplicatedP@ssword' -p 1433:1433 mcr.microsoft.com/mssql/server:{{ matrix.mssql-version }}-latest
+        if: matrix.encrypted == 'no'
+
+      - name: Setup MSSQL with encryption
+        run:  docker run -v "$(pwd)/certificates/mssql.conf:/var/opt/mssql/mssql.conf" -v "$(pwd)/certificates/mssql.key:/var/opt/mssql/mssql.key" -v "$(pwd)/certificates/mssql.pem:/var/opt/mssql/mssql.pem" -e "ACCEPT_EULA=Y" -e 'MSSQL_SA_PASSWORD=c0MplicatedP@ssword' -p 1433:1433 mcr.microsoft.com/mssql/server:{{ matrix.mssql-version }}-latest
+        if: matrix.encrypted == 'yes'
 
       - name: Setup MSSQL database
         run: |
