@@ -34,9 +34,9 @@ $ apt-get install wget
 $ apt-get install build-essential
 $ apt-get install libc6-dev
 
-$ wget http://www.freetds.org/files/stable/freetds-1.4.10.tar.gz
-$ tar -xzf freetds-1.4.10.tar.gz
-$ cd freetds-1.4.10
+$ wget http://www.freetds.org/files/stable/freetds-1.4.20.tar.gz
+$ tar -xzf freetds-1.4.20.tar.gz
+$ cd freetds-1.4.20
 $ ./configure --prefix=/usr/local --with-tdsver=7.4
 $ make
 $ make install
@@ -57,7 +57,7 @@ Optionally, Microsoft has done a great job writing [an article](https://learn.mi
 
 ## FreeTDS Compatibility & Configuration
 
-TinyTDS is developed against FreeTDs 1.1+. We also test with SQL Server 2017, 2019, 2022 and Azure. Older version of SQL Server or FreeTDS could work, but are not supported.
+TinyTDS is developed against FreeTDs 1.4+. We also test with SQL Server 2017, 2019, 2022 and Azure. Older version of SQL Server or FreeTDS could work, but are not supported.
 
 > [!IMPORTANT]
 >
