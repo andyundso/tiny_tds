@@ -37,7 +37,7 @@ jobs:
           path: ports
           key: cross-compiled-${{ hashFiles('**/.ports_versions') }}
           restore-keys: |
-            cross-compiled-${{ hashFiles('**/.ports_versions') }}
+            cross-compiled-v2-${{ hashFiles('**/.ports_versions') }}
             cross-compiled-v2-
 
       - name: Build gem
@@ -345,10 +345,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ports
-          key: native-v2-${{ hashFiles('**/.ports_versions') }}
+          key: native-v4-${{ hashFiles('**/.ports_versions') }}
           restore-keys: |
-            native-${{ hashFiles('* */.ports_versions') }}
-            native-v2-
+            native-v4-${{ hashFiles('* */.ports_versions') }}
+            native-v4-
 
       - name: Build required libraries
         run: |
@@ -388,7 +388,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ports
-          key: native-v2-${{ hashFiles('**/.ports_versions') }}
+          key: native-v4-${{ hashFiles('**/.ports_versions') }}
           fail-on-cache-miss: true
 
       - name: Build gem
