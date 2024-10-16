@@ -96,6 +96,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        force-encryption:
+          - "true"
+          - "false"
         mssql-version:
           - 2017
           - 2019
@@ -141,6 +144,7 @@ jobs:
         uses: andyundso/setup-mssql@v1
         with:
           components: sqlengine, sqlcmd
+          force-encryption: ${{ matrix.force-encryption }}
           sa-password: c0MplicatedP@ssword
           version: ${{ matrix.mssql-version }}
 
@@ -216,6 +220,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        force-encryption:
+          - "true"
+          - "false"
         mssql-version:
           - 2017
           - 2019
@@ -261,6 +268,7 @@ jobs:
         uses: andyundso/setup-mssql@v1
         with:
           components: sqlengine, sqlcmd
+          force-encryption: ${{ matrix.force-encryption }}
           sa-password: c0MplicatedP@ssword
           version: ${{ matrix.mssql-version }}
 
