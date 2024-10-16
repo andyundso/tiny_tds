@@ -308,7 +308,9 @@ static VALUE rb_tinytds_execute(VALUE self, VALUE sql) {
     // note that both of these operations are blocking as we do not have access to these
     // "NOGVL" methods from result.c
     if (cwrap->userdata->dbsqlok_sent == 0) {
-      dbsqlok(cwrap->client);
+      if(nogvl_dbsqlok(cwrap->client) != SUCCEED) {
+        rb_raise(cTinyTdsError, "unable to acknowledge previous results with server");
+      }
     }
 
     dbcancel(cwrap->client);
