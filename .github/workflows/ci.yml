@@ -97,7 +97,7 @@ jobs:
       fail-fast: false
       matrix:
         mssql-version:
-          #- 2017
+          - 2017
           - 2019
           - 2022
         ruby-version:
@@ -138,12 +138,11 @@ jobs:
           Copy-Item -Path ".\tmp\gems\tiny_tds-$gemVersion-$rubyArchitecture\ports" -Destination "." -Recurse
 
       - name: Setup MSSQL
-        uses: potatoqualitee/mssqlsuite@v1.7
+        uses: andyundso/setup-mssql@v1
         with:
-          install: sqlengine, sqlclient
-          version: ${{ matrix.mssql-version }}
+          components: sqlengine, sqlcmd
           sa-password: c0MplicatedP@ssword
-          show-log: true
+          version: ${{ matrix.mssql-version }}
 
       - name: Setup MSSQL database
         shell: pwsh
@@ -218,7 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         mssql-version:
-          #- 2017
+          - 2017
           - 2019
           - 2022
         ruby-version:
@@ -259,12 +258,11 @@ jobs:
           Copy-Item -Path ".\tmp\gems\tiny_tds-$gemVersion-$rubyArchitecture\ports" -Destination "." -Recurse
 
       - name: Setup MSSQL
-        uses: potatoqualitee/mssqlsuite@v1.7
+        uses: andyundso/setup-mssql@v1
         with:
-          install: sqlengine, sqlclient
-          version: ${{ matrix.mssql-version }}
+          components: sqlengine, sqlcmd
           sa-password: c0MplicatedP@ssword
-          show-log: true
+          version: ${{ matrix.mssql-version }}
 
       - name: Setup MSSQL database
         shell: pwsh
@@ -396,12 +394,11 @@ jobs:
           bundle exec rake build
 
       - name: Setup MSSQL
-        uses: potatoqualitee/mssqlsuite@v1.7
+        uses: andyundso/setup-mssql@v1
         with:
-          install: sqlengine, sqlclient
+          components: sqlengine, sqlcmd
+          sa-password: c0MplicatedP@ssword
           version: ${{ matrix.mssql-version }}
-          sa-password: "c0MplicatedP@ssword"
-          show-log: true
 
       - name: Setup MSSQL database
         run: |
