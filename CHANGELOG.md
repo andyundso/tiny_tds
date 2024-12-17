@@ -1,3 +1,7 @@
+## (unreleased)
+
+* Fix segfaults when closing client before or during calling `each`. Fixes #435.
+
 ## 3.0.0
 
 * Drop support for Ruby < 2.7

@@ -77,6 +77,12 @@ VALUE rb_tinytds_new_result_obj(tinytds_client_wrapper *cwrap) {
     (rb_unblock_function_t*)dbcancel_ubf, _client ) \
 )
 
+void raise_if_client_closed(tinytds_client_wrapper *cwrap) {
+  if (cwrap->closed || cwrap->userdata->closed) {
+    rb_raise(cTinyTdsError, "closed connection");
+  }
+}
+
 static void dbcancel_ubf(DBPROCESS *client) {
   GET_CLIENT_USERDATA(client);
   dbcancel(client);
@@ -122,37 +128,40 @@ static void nogvl_cleanup(DBPROCESS *client) {
   userdata->nonblocking_errors_size = 0;
 }
 
-static RETCODE nogvl_dbsqlok(DBPROCESS *client) {
+static RETCODE nogvl_dbsqlok(tinytds_client_wrapper *cwrap) {
   int retcode = FAIL;
-  GET_CLIENT_USERDATA(client);
-  nogvl_setup(client);
-  retcode = NOGVL_DBCALL(dbsqlok, client);
-  nogvl_cleanup(client);
-  userdata->dbsqlok_sent = 1;
+  raise_if_client_closed(cwrap);
+  nogvl_setup(cwrap->client);
+  retcode = NOGVL_DBCALL(dbsqlok, cwrap->client);
+  nogvl_cleanup(cwrap->client);
+  cwrap->userdata->dbsqlok_sent = 1;
   return retcode;
 }
 
-static RETCODE nogvl_dbsqlexec(DBPROCESS *client) {
+static RETCODE nogvl_dbsqlexec(tinytds_client_wrapper *cwrap) {
   int retcode = FAIL;
-  nogvl_setup(client);
-  retcode = NOGVL_DBCALL(dbsqlexec, client);
-  nogvl_cleanup(client);
+  raise_if_client_closed(cwrap);
+  nogvl_setup(cwrap->client);
+  retcode = NOGVL_DBCALL(dbsqlexec, cwrap->client);
+  nogvl_cleanup(cwrap->client);
   return retcode;
 }
 
-static RETCODE nogvl_dbresults(DBPROCESS *client) {
+static RETCODE nogvl_dbresults(tinytds_client_wrapper *cwrap) {
   int retcode = FAIL;
-  nogvl_setup(client);
-  retcode = NOGVL_DBCALL(dbresults, client);
-  nogvl_cleanup(client);
+  raise_if_client_closed(cwrap);
+  nogvl_setup(cwrap->client);
+  retcode = NOGVL_DBCALL(dbresults, cwrap->client);
+  nogvl_cleanup(cwrap->client);
   return retcode;
 }
 
-static RETCODE nogvl_dbnextrow(DBPROCESS * client) {
+static RETCODE nogvl_dbnextrow(tinytds_client_wrapper *cwrap) {
   int retcode = FAIL;
-  nogvl_setup(client);
-  retcode = NOGVL_DBCALL(dbnextrow, client);
-  nogvl_cleanup(client);
+  raise_if_client_closed(cwrap);
+  nogvl_setup(cwrap->client);
+  retcode = NOGVL_DBCALL(dbnextrow, cwrap->client);
+  nogvl_cleanup(cwrap->client);
   return retcode;
 }
 
@@ -164,7 +173,7 @@ static RETCODE rb_tinytds_result_dbresults_retcode(VALUE self) {
   GET_RESULT_WRAPPER(self);
   ruby_rc = rb_ary_entry(rwrap->dbresults_retcodes, rwrap->number_of_results);
   if (NIL_P(ruby_rc)) {
-    db_rc = nogvl_dbresults(rwrap->client);
+    db_rc = nogvl_dbresults(rwrap->cwrap);
     ruby_rc = INT2FIX(db_rc);
     rb_ary_store(rwrap->dbresults_retcodes, rwrap->number_of_results, ruby_rc);
   } else {
@@ -173,35 +182,33 @@ static RETCODE rb_tinytds_result_dbresults_retcode(VALUE self) {
   return db_rc;
 }
 
-static RETCODE rb_tinytds_result_ok_helper(DBPROCESS *client) {
-  GET_CLIENT_USERDATA(client);
-  if (userdata->dbsqlok_sent == 0) {
-    userdata->dbsqlok_retcode = nogvl_dbsqlok(client);
+static RETCODE rb_tinytds_result_ok_helper(tinytds_client_wrapper *cwrap) {
+  if (cwrap->userdata->dbsqlok_sent == 0) {
+    cwrap->userdata->dbsqlok_retcode = nogvl_dbsqlok(cwrap);
   }
-  return userdata->dbsqlok_retcode;
+  return cwrap->userdata->dbsqlok_retcode;
 }
 
-static void rb_tinytds_result_exec_helper(DBPROCESS *client) {
-  RETCODE dbsqlok_rc = rb_tinytds_result_ok_helper(client);
-  GET_CLIENT_USERDATA(client);
+static void rb_tinytds_result_exec_helper(tinytds_client_wrapper *cwrap) {
+  RETCODE dbsqlok_rc = rb_tinytds_result_ok_helper(cwrap);
   if (dbsqlok_rc == SUCCEED) {
     /*
     This is to just process each result set. Commands such as backup and
     restore are not done when the first result set is returned, so we need to
     exhaust the result sets before it is complete.
     */
-    while (nogvl_dbresults(client) == SUCCEED) {
+    while (nogvl_dbresults(cwrap) == SUCCEED) {
       /*
       If we don't loop through each row for calls to TinyTds::Result.do that
       actually do return result sets, we will trigger error 20019 about trying
       to execute a new command with pending results. Oh well.
       */
-      while (dbnextrow(client) != NO_MORE_ROWS);
+      while (dbnextrow(cwrap->client) != NO_MORE_ROWS);
     }
   }
-  dbcancel(client);
-  userdata->dbcancel_sent = 1;
-  userdata->dbsql_sent = 0;
+  dbcancel(cwrap->client);
+  cwrap->userdata->dbcancel_sent = 1;
+  cwrap->userdata->dbsql_sent = 0;
 }
 
 static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_keys, int as_array) {
@@ -368,7 +375,7 @@ static VALUE rb_tinytds_result_fields(VALUE self) {
   RETCODE dbsqlok_rc, dbresults_rc;
   VALUE fields_processed;
   GET_RESULT_WRAPPER(self);
-  dbsqlok_rc = rb_tinytds_result_ok_helper(rwrap->client);
+  dbsqlok_rc = rb_tinytds_result_ok_helper(rwrap->cwrap);
   dbresults_rc = rb_tinytds_result_dbresults_retcode(self);
   fields_processed = rb_ary_entry(rwrap->fields_processed, rwrap->number_of_results);
   if ((dbsqlok_rc == SUCCEED) && (dbresults_rc == SUCCEED) && (fields_processed == Qnil)) {
@@ -441,7 +448,7 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
   if (NIL_P(rwrap->results)) {
     RETCODE dbsqlok_rc, dbresults_rc;
     rwrap->results = rb_ary_new();
-    dbsqlok_rc = rb_tinytds_result_ok_helper(rwrap->client);
+    dbsqlok_rc = rb_tinytds_result_ok_helper(rwrap->cwrap);
     dbresults_rc = rb_tinytds_result_dbresults_retcode(self);
     while ((dbsqlok_rc == SUCCEED) && (dbresults_rc == SUCCEED)) {
       int has_rows = (DBROWS(rwrap->client) == SUCCEED) ? 1 : 0;
@@ -451,7 +458,7 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
         /* Create rows for this result set. */
         unsigned long rowi = 0;
         VALUE result = rb_ary_new();
-        while (nogvl_dbnextrow(rwrap->client) != NO_MORE_ROWS) {
+        while (nogvl_dbnextrow(rwrap->cwrap) != NO_MORE_ROWS) {
           VALUE row = rb_tinytds_result_fetch_row(self, timezone, symbolize_keys, as_array);
           if (cache_rows)
             rb_ary_store(result, rowi, row);
@@ -484,7 +491,7 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
       } else {
         // If we do not find results, side step the rb_tinytds_result_dbresults_retcode helper and
         // manually populate its memoized array while nullifing any memoized fields too before loop.
-        dbresults_rc = nogvl_dbresults(rwrap->client);
+        dbresults_rc = nogvl_dbresults(rwrap->cwrap);
         rb_ary_store(rwrap->dbresults_retcodes, rwrap->number_of_results, INT2FIX(dbresults_rc));
         rb_ary_store(rwrap->fields_processed, rwrap->number_of_results, Qnil);
       }
@@ -506,7 +513,7 @@ static VALUE rb_tinytds_result_cancel(VALUE self) {
   GET_RESULT_WRAPPER(self);
   userdata = (tinytds_client_userdata *)dbgetuserdata(rwrap->client);
   if (rwrap->client && !userdata->dbcancel_sent) {
-    rb_tinytds_result_ok_helper(rwrap->client);
+    rb_tinytds_result_ok_helper(rwrap->cwrap);
     dbcancel(rwrap->client);
     userdata->dbcancel_sent = 1;
     userdata->dbsql_sent = 0;
@@ -517,7 +524,7 @@ static VALUE rb_tinytds_result_cancel(VALUE self) {
 static VALUE rb_tinytds_result_do(VALUE self) {
   GET_RESULT_WRAPPER(self);
   if (rwrap->client) {
-    rb_tinytds_result_exec_helper(rwrap->client);
+    rb_tinytds_result_exec_helper(rwrap->cwrap);
     return LONG2NUM((long)dbcount(rwrap->client));
   } else {
     return Qnil;
@@ -547,12 +554,12 @@ static VALUE rb_tinytds_result_insert(VALUE self) {
   GET_RESULT_WRAPPER(self);
   if (rwrap->client) {
     VALUE identity = Qnil;
-    rb_tinytds_result_exec_helper(rwrap->client);
+    rb_tinytds_result_exec_helper(rwrap->cwrap);
     dbcmd(rwrap->client, rwrap->cwrap->identity_insert_sql);
-    if (nogvl_dbsqlexec(rwrap->client) != FAIL
-      && nogvl_dbresults(rwrap->client) != FAIL
+    if (nogvl_dbsqlexec(rwrap->cwrap) != FAIL
+      && nogvl_dbresults(rwrap->cwrap) != FAIL
       && DBROWS(rwrap->client) != FAIL) {
-      while (nogvl_dbnextrow(rwrap->client) != NO_MORE_ROWS) {
+      while (nogvl_dbnextrow(rwrap->cwrap) != NO_MORE_ROWS) {
         int col = 1;
         BYTE *data = dbdata(rwrap->client, col);
         DBINT data_len = dbdatlen(rwrap->client, col);

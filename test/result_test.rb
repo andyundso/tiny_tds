@@ -699,6 +699,78 @@ class ResultTest < TinyTds::TestCase
           assert_equal 50000, e.db_error_number
         end
       end
+
+      it 'deals with closed client before calling each' do
+        client = new_connection
+        result = client.execute("SELECT [id] FROM [datatypes]")
+        client.close
+
+        assert_raise_tinytds_error(-> { result.to_a }) do |e|
+          assert_equal "closed connection", e.message
+        end
+
+        assert_new_connections_work
+      end
+
+      it 'deals with closed client mid-iteration' do
+        client = new_connection
+
+        action = lambda do 
+          result = client.execute("SELECT [id] FROM [datatypes]")
+          result.each_with_index do |_row, index|
+            assert index <= 5
+
+            if index == 5
+              client.close
+            end
+          end
+        end
+
+        assert_raise_tinytds_error(action) do |e|
+          assert_equal "closed connection", e.message
+        end
+
+        assert_new_connections_work
+      end
+
+      it 'deals with dead connection before iterating over results' do
+        init_toxiproxy
+
+        client = new_connection port: 1234, host: ENV['TOXIPROXY_HOST']
+
+        Toxiproxy[:sqlserver_test].down do
+          result = client.execute("SELECT [id] FROM [datatypes]")
+
+          assert_raise_tinytds_error(-> { result.to_a }) do |e|
+            assert_equal "DBPROCESS is dead or not enabled", e.message
+          end
+        end
+      end
+
+      it 'deals with dead connection mid-iteration' do
+        init_toxiproxy
+
+        client = new_connection port: 1234, host: ENV['TOXIPROXY_HOST']
+        action = lambda do 
+          result = client.execute("SELECT [id] FROM [datatypes]")
+          result.each_with_index do |_row, index|
+            assert index <= 5
+
+            if index == 5
+              puts "sleeping to wait for toxiproxy"
+              sleep 2
+            end
+          end
+        end
+
+        Toxiproxy[:sqlserver_test].toxic(:timeout, timeout: 1000).apply do
+          assert_raise_tinytds_error(action) do |e|
+            assert_equal "DBPROCESS is dead or not enabled", e.message
+          end
+        end
+
+        assert_new_connections_work
+      end
     end
   end
 
