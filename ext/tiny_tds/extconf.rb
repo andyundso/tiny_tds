@@ -86,6 +86,9 @@ unless have_dependencies
   abort 'Failed! Do you have FreeTDS 1.0.0 or higher installed?'
 end
 
+append_ldflags("-L#{freetds_ports_dir} -Wl,-rpath,#{freetds_ports_dir}")
+append_library($LIBS, "-lsybdb")
+
 create_makefile('tiny_tds/tiny_tds')
 
 # :startdoc:

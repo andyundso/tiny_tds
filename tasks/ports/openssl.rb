@@ -29,7 +29,6 @@ module Ports
 
     def configure_defaults
       opts = [
-        'shared',
         target_arch,
         "--openssldir=#{path}",
       ]

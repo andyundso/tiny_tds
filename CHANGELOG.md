@@ -1,3 +1,7 @@
+## (unreleased)
+
+* Provide precompiled gem for Linux
+
 ## 3.1.0
 
 * Add Ruby 3.4 to the cross compile list

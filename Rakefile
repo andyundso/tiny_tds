@@ -9,6 +9,7 @@ SPEC = Gem::Specification.load(File.expand_path('../tiny_tds.gemspec', __FILE__)
 
 ruby_cc_ucrt_versions = "3.4.0:3.3.5:3.2.0:3.1.0".freeze
 ruby_cc_mingw32_versions = "3.0.0:2.7.0".freeze
+ruby_cc_all_supported_versions = "#{ruby_cc_ucrt_versions}:#{ruby_cc_mingw32_versions}"
 
 GEM_PLATFORM_HOSTS = {
   'x64-mingw32' => {
@@ -18,6 +19,10 @@ GEM_PLATFORM_HOSTS = {
   'x64-mingw-ucrt' => {
     host: 'x86_64-w64-mingw32',
     ruby_versions: ruby_cc_ucrt_versions
+  },
+  'x86_64-linux-gnu' => {
+    host: 'x86_64-linux-gnu',
+    ruby_versions: ruby_cc_all_supported_versions
   },
 }
 
@@ -51,6 +56,11 @@ Rake::ExtensionTask.new('tiny_tds', SPEC) do |ext|
     end
 
     spec.files += Dir.glob('exe/*')
+
+    if spec.platform.os == "linux"
+      # with this release, "-gnu" refers to glibc-based Linux and "-musl" for musl
+      spec.required_rubygems_version.concat([">= 3.3.22"])
+    end
   end
 end
 

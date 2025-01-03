@@ -32,8 +32,8 @@ module Ports
     def configure_defaults
       [
         "--host=#{@host}",
-        '--disable-static',
-        '--enable-shared'
+        '--enable-static',
+        '--disable-shared'
       ]
     end
 

@@ -13,8 +13,8 @@ module Ports
     def configure_defaults
       [
         "--host=#{@host}",
-        '--disable-static',
-        '--enable-shared',
+        '--enable-static',
+        '--disable-shared',
         'CFLAGS=-fPIC -O2'
       ]
     end
