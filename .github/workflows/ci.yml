@@ -490,3 +490,16 @@ jobs:
       - name: Check standardrb
         shell: bash
         run: bundle exec standardrb
+
+  clang-format:
+    name: check-clang-format
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check C code formatting
+        uses: jidicula/clang-format-action@v4.14.0
+        with:
+          clang-format-version: "15"
+          check-path: "ext/tiny_tds"
+          fallback-style: "Google"

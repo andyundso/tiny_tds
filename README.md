@@ -448,7 +448,13 @@ $ rake TINYTDS_UNIT_HOST=mydb.host.net TINYTDS_SCHEMA=sqlserver_azure
 
 ### Code formatting
 
-We are using `standardrb` to format our code. Just run `bundle exec standardrb --fix` to format all Ruby files.
+We are using `standardrb` to format our Ruby code. Just run `bundle exec standardrb --fix` to format all files.
+
+For the C code, we use `clang-format` and style based on Google. You can see the modifications in `.clang-format`. To apply the code formatting, you need at least `clang-format` v15, then run the following command:
+
+```shell
+find ext/tiny_tds/ -iname '*.h' -o -iname '*.c' | xargs clang-format -i
+```
 
 ## Docker Builds
 
