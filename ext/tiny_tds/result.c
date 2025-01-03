@@ -1,38 +1,40 @@
 
-#include <tiny_tds_ext.h>
 #include <stdint.h>
+#include <tiny_tds_ext.h>
 
 // File Types/Vars
 
 VALUE cTinyTdsResult;
 extern VALUE mTinyTds, cTinyTdsClient, cTinyTdsError;
 VALUE cKernel, cDate;
-VALUE opt_decimal_zero, opt_float_zero, opt_one, opt_zero, opt_four, opt_19hdr, opt_onek, opt_tenk, opt_onemil, opt_onebil;
-static ID intern_new, intern_utc, intern_local, intern_localtime, intern_merge,
-          intern_civil, intern_new_offset, intern_plus, intern_divide, intern_bigd;
-static ID sym_symbolize_keys, sym_as, sym_array, sym_cache_rows, sym_first, sym_timezone, sym_local, sym_utc, sym_empty_sets;
-
+VALUE opt_decimal_zero, opt_float_zero, opt_one, opt_zero, opt_four, opt_19hdr, opt_onek, opt_tenk, opt_onemil,
+    opt_onebil;
+static ID intern_new, intern_utc, intern_local, intern_localtime, intern_merge, intern_civil, intern_new_offset,
+    intern_plus, intern_divide, intern_bigd;
+static ID sym_symbolize_keys, sym_as, sym_array, sym_cache_rows, sym_first, sym_timezone, sym_local, sym_utc,
+    sym_empty_sets;
 
 // Lib Macros
 
 rb_encoding *binaryEncoding;
-#define ENCODED_STR_NEW(_data, _len) ({ \
-  VALUE _val = rb_str_new((char *)_data, (long)_len); \
-  rb_enc_associate(_val, rwrap->encoding); \
-  _val; \
-})
-#define ENCODED_STR_NEW2(_data2) ({ \
-  VALUE _val = rb_str_new2((char *)_data2); \
-  rb_enc_associate(_val, rwrap->encoding); \
-  _val; \
-})
+#define ENCODED_STR_NEW(_data, _len)                    \
+  ({                                                    \
+    VALUE _val = rb_str_new((char *)_data, (long)_len); \
+    rb_enc_associate(_val, rwrap->encoding);            \
+    _val;                                               \
+  })
+#define ENCODED_STR_NEW2(_data2)              \
+  ({                                          \
+    VALUE _val = rb_str_new2((char *)_data2); \
+    rb_enc_associate(_val, rwrap->encoding);  \
+    _val;                                     \
+  })
 
 #ifdef _WIN32
-  #define LONG_LONG_FORMAT "I64d"
+#define LONG_LONG_FORMAT "I64d"
 #else
-  #define LONG_LONG_FORMAT "lld"
+#define LONG_LONG_FORMAT "lld"
 #endif
-
 
 // Lib Backend (Memory Management)
 
@@ -47,9 +49,7 @@ static void rb_tinytds_result_mark(void *ptr) {
   }
 }
 
-static void rb_tinytds_result_free(void *ptr) {
-  xfree(ptr);
-}
+static void rb_tinytds_result_free(void *ptr) { xfree(ptr); }
 
 VALUE rb_tinytds_new_result_obj(tinytds_client_wrapper *cwrap) {
   VALUE obj;
@@ -71,11 +71,9 @@ VALUE rb_tinytds_new_result_obj(tinytds_client_wrapper *cwrap) {
 
 // No GVL Helpers
 
-#define NOGVL_DBCALL(_dbfunction, _client) ( \
-  (RETCODE)(intptr_t)rb_thread_call_without_gvl( \
-    (void *(*)(void *))_dbfunction, _client, \
-    (rb_unblock_function_t*)dbcancel_ubf, _client ) \
-)
+#define NOGVL_DBCALL(_dbfunction, _client)                                                \
+  ((RETCODE)(intptr_t)rb_thread_call_without_gvl((void *(*)(void *))_dbfunction, _client, \
+                                                 (rb_unblock_function_t *)dbcancel_ubf, _client))
 
 static void dbcancel_ubf(DBPROCESS *client) {
   GET_CLIENT_USERDATA(client);
@@ -148,7 +146,7 @@ static RETCODE nogvl_dbresults(DBPROCESS *client) {
   return retcode;
 }
 
-static RETCODE nogvl_dbnextrow(DBPROCESS * client) {
+static RETCODE nogvl_dbnextrow(DBPROCESS *client) {
   int retcode = FAIL;
   nogvl_setup(client);
   retcode = NOGVL_DBCALL(dbnextrow, client);
@@ -196,7 +194,9 @@ static void rb_tinytds_result_exec_helper(DBPROCESS *client) {
       actually do return result sets, we will trigger error 20019 about trying
       to execute a new command with pending results. Oh well.
       */
-      while (dbnextrow(client) != NO_MORE_ROWS);
+      while (dbnextrow(client) != NO_MORE_ROWS) {
+        ;
+      }
     }
   }
   dbcancel(client);
@@ -214,13 +214,13 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
   row = as_array ? rb_ary_new2(rwrap->number_of_fields) : rb_hash_new();
   for (i = 0; i < rwrap->number_of_fields; i++) {
     VALUE val = Qnil;
-    int col = i+1;
+    int col = i + 1;
     int coltype = dbcoltype(rwrap->client, col);
     BYTE *data = dbdata(rwrap->client, col);
     DBINT data_len = dbdatlen(rwrap->client, col);
     int null_val = ((data == NULL) && (data_len == 0));
     if (!null_val) {
-      switch(coltype) {
+      switch (coltype) {
         case SYBINT1:
           val = INT2FIX(*(DBTINYINT *)data);
           break;
@@ -274,11 +274,11 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
         case SYBBINARY:
         case SYBIMAGE:
           val = rb_str_new((char *)data, (long)data_len);
-          #ifdef HAVE_RUBY_ENCODING_H
-            rb_enc_associate(val, binaryEncoding);
-          #endif
+#ifdef HAVE_RUBY_ENCODING_H
+          rb_enc_associate(val, binaryEncoding);
+#endif
           break;
-        case 36: { // SYBUNIQUE
+        case 36: {  // SYBUNIQUE
           char converted_unique[37];
           dbconvert(rwrap->client, coltype, data, 37, SYBVARCHAR, (BYTE *)converted_unique, -1);
           val = ENCODED_STR_NEW2(converted_unique);
@@ -294,7 +294,8 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
           DBDATEREC dr;
           dbdatecrack(rwrap->client, &dr, (DBDATETIME *)data);
           if (dr.year + dr.month + dr.day + dr.hour + dr.minute + dr.second + dr.millisecond != 0) {
-            val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(dr.year), INT2NUM(dr.month), INT2NUM(dr.day), INT2NUM(dr.hour), INT2NUM(dr.minute), INT2NUM(dr.second), INT2NUM(dr.millisecond*1000));
+            val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(dr.year), INT2NUM(dr.month), INT2NUM(dr.day),
+                             INT2NUM(dr.hour), INT2NUM(dr.minute), INT2NUM(dr.second), INT2NUM(dr.millisecond * 1000));
           }
           break;
         }
@@ -304,25 +305,28 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
         case SYBMSDATETIMEOFFSET: {
           DBDATEREC2 dr2;
           dbanydatecrack(rwrap->client, &dr2, coltype, data);
-          switch(coltype) {
+          switch (coltype) {
             case SYBMSDATE: {
               val = rb_funcall(cDate, intern_new, 3, INT2NUM(dr2.year), INT2NUM(dr2.month), INT2NUM(dr2.day));
               break;
             }
             case SYBMSTIME: {
               VALUE rational_nsec = rb_Rational(INT2NUM(dr2.nanosecond), opt_onek);
-              val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(1900), INT2NUM(1), INT2NUM(1), INT2NUM(dr2.hour), INT2NUM(dr2.minute), INT2NUM(dr2.second), rational_nsec);
+              val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(1900), INT2NUM(1), INT2NUM(1), INT2NUM(dr2.hour),
+                               INT2NUM(dr2.minute), INT2NUM(dr2.second), rational_nsec);
               break;
             }
             case SYBMSDATETIME2: {
               VALUE rational_nsec = rb_Rational(INT2NUM(dr2.nanosecond), opt_onek);
-              val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(dr2.year), INT2NUM(dr2.month), INT2NUM(dr2.day), INT2NUM(dr2.hour), INT2NUM(dr2.minute), INT2NUM(dr2.second), rational_nsec);
+              val = rb_funcall(rb_cTime, timezone, 7, INT2NUM(dr2.year), INT2NUM(dr2.month), INT2NUM(dr2.day),
+                               INT2NUM(dr2.hour), INT2NUM(dr2.minute), INT2NUM(dr2.second), rational_nsec);
               break;
             }
             case SYBMSDATETIMEOFFSET: {
               long long numerator = ((long)dr2.second * (long long)1000000000) + (long long)dr2.nanosecond;
               VALUE rational_sec = rb_Rational(LL2NUM(numerator), opt_onebil);
-              val = rb_funcall(rb_cTime, intern_new, 7, INT2NUM(dr2.year), INT2NUM(dr2.month), INT2NUM(dr2.day), INT2NUM(dr2.hour), INT2NUM(dr2.minute), rational_sec, INT2NUM(dr2.tzone*60));
+              val = rb_funcall(rb_cTime, intern_new, 7, INT2NUM(dr2.year), INT2NUM(dr2.month), INT2NUM(dr2.day),
+                               INT2NUM(dr2.hour), INT2NUM(dr2.minute), rational_sec, INT2NUM(dr2.tzone * 60));
               break;
             }
           }
@@ -332,7 +336,7 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
         case SYBTEXT:
           val = ENCODED_STR_NEW(data, data_len);
           break;
-        case 98: { // SYBVARIANT
+        case 98: {  // SYBVARIANT
           if (data_len == 4) {
             val = INT2NUM(*(DBINT *)data);
             break;
@@ -361,7 +365,6 @@ static VALUE rb_tinytds_result_fetch_row(VALUE self, ID timezone, int symbolize_
   return row;
 }
 
-
 // TinyTds::Client (public)
 
 static VALUE rb_tinytds_result_fields(VALUE self) {
@@ -375,8 +378,9 @@ static VALUE rb_tinytds_result_fields(VALUE self) {
     /* Default query options. */
     int symbolize_keys = 0;
     VALUE qopts = rb_iv_get(self, "@query_options");
-    if (rb_hash_aref(qopts, sym_symbolize_keys) == Qtrue)
-       symbolize_keys = 1;
+    if (rb_hash_aref(qopts, sym_symbolize_keys) == Qtrue) {
+      symbolize_keys = 1;
+    }
     /* Set number_of_fields count for this result set. */
     rwrap->number_of_fields = dbnumcols(rwrap->client);
     if (rwrap->number_of_fields > 0) {
@@ -384,8 +388,9 @@ static VALUE rb_tinytds_result_fields(VALUE self) {
       unsigned int fldi = 0;
       VALUE fields = rb_ary_new2(rwrap->number_of_fields);
       for (fldi = 0; fldi < rwrap->number_of_fields; fldi++) {
-        char *colname = dbcolname(rwrap->client, fldi+1);
-        VALUE field = symbolize_keys ? rb_str_intern(ENCODED_STR_NEW2(colname))  : rb_obj_freeze(ENCODED_STR_NEW2(colname));
+        char *colname = dbcolname(rwrap->client, fldi + 1);
+        VALUE field =
+            symbolize_keys ? rb_str_intern(ENCODED_STR_NEW2(colname)) : rb_obj_freeze(ENCODED_STR_NEW2(colname));
         rb_ary_store(fields, fldi, field);
       }
       /* Store the fields. */
@@ -405,7 +410,7 @@ static VALUE rb_tinytds_result_fields(VALUE self) {
   return rwrap->fields;
 }
 
-static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
+static VALUE rb_tinytds_result_each(int argc, VALUE *argv, VALUE self) {
   /* Local Vars */
   VALUE qopts, opts, block;
   ID timezone;
@@ -415,18 +420,23 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
   userdata = (tinytds_client_userdata *)dbgetuserdata(rwrap->client);
   /* Merge Options Hash To Query Options. Populate Opts & Block Var. */
   qopts = rb_iv_get(self, "@query_options");
-  if (rb_scan_args(argc, argv, "01&", &opts, &block) == 1)
+  if (rb_scan_args(argc, argv, "01&", &opts, &block) == 1) {
     qopts = rb_funcall(qopts, intern_merge, 1, opts);
+  }
   rb_iv_set(self, "@query_options", qopts);
   /* Locals From Options */
-  if (rb_hash_aref(qopts, sym_first) == Qtrue)
+  if (rb_hash_aref(qopts, sym_first) == Qtrue) {
     first = 1;
-  if (rb_hash_aref(qopts, sym_symbolize_keys) == Qtrue)
+  }
+  if (rb_hash_aref(qopts, sym_symbolize_keys) == Qtrue) {
     symbolize_keys = 1;
-  if (rb_hash_aref(qopts, sym_as) == sym_array)
+  }
+  if (rb_hash_aref(qopts, sym_as) == sym_array) {
     as_array = 1;
-  if (rb_hash_aref(qopts, sym_cache_rows) == Qtrue)
+  }
+  if (rb_hash_aref(qopts, sym_cache_rows) == Qtrue) {
     cache_rows = 1;
+  }
   if (rb_hash_aref(qopts, sym_timezone) == sym_local) {
     timezone = intern_local;
   } else if (rb_hash_aref(qopts, sym_timezone) == sym_utc) {
@@ -435,8 +445,9 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
     rb_warn(":timezone option must be :utc or :local - defaulting to :local");
     timezone = intern_local;
   }
-  if (rb_hash_aref(qopts, sym_empty_sets) == Qtrue)
+  if (rb_hash_aref(qopts, sym_empty_sets) == Qtrue) {
     empty_sets = 1;
+  }
   /* Make The Results Or Yield Existing */
   if (NIL_P(rwrap->results)) {
     RETCODE dbsqlok_rc, dbresults_rc;
@@ -445,18 +456,21 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
     dbresults_rc = rb_tinytds_result_dbresults_retcode(self);
     while ((dbsqlok_rc == SUCCEED) && (dbresults_rc == SUCCEED)) {
       int has_rows = (DBROWS(rwrap->client) == SUCCEED) ? 1 : 0;
-      if (has_rows || empty_sets || (rwrap->number_of_results == 0))
+      if (has_rows || empty_sets || (rwrap->number_of_results == 0)) {
         rb_tinytds_result_fields(self);
+      }
       if ((has_rows || empty_sets) && rwrap->number_of_fields > 0) {
         /* Create rows for this result set. */
         unsigned long rowi = 0;
         VALUE result = rb_ary_new();
         while (nogvl_dbnextrow(rwrap->client) != NO_MORE_ROWS) {
           VALUE row = rb_tinytds_result_fetch_row(self, timezone, symbolize_keys, as_array);
-          if (cache_rows)
+          if (cache_rows) {
             rb_ary_store(result, rowi, row);
-          if (!NIL_P(block))
+          }
+          if (!NIL_P(block)) {
             rb_yield(row);
+          }
           if (first) {
             dbcanquery(rwrap->client);
             userdata->dbcancel_sent = 1;
@@ -477,20 +491,25 @@ static VALUE rb_tinytds_result_each(int argc, VALUE * argv, VALUE self) {
             rb_ary_store(rwrap->results, rwrap->number_of_results, result);
           }
         }
-        // If we find results increment the counter that helpers use and setup the next loop.
+        // If we find results increment the counter that helpers use and setup
+        // the next loop.
         rwrap->number_of_results = rwrap->number_of_results + 1;
         dbresults_rc = rb_tinytds_result_dbresults_retcode(self);
         rb_ary_store(rwrap->fields_processed, rwrap->number_of_results, Qnil);
       } else {
-        // If we do not find results, side step the rb_tinytds_result_dbresults_retcode helper and
-        // manually populate its memoized array while nullifing any memoized fields too before loop.
+        // If we do not find results, side step the
+        // rb_tinytds_result_dbresults_retcode helper and manually populate its
+        // memoized array while nullifing any memoized fields too before loop.
         dbresults_rc = nogvl_dbresults(rwrap->client);
         rb_ary_store(rwrap->dbresults_retcodes, rwrap->number_of_results, INT2FIX(dbresults_rc));
         rb_ary_store(rwrap->fields_processed, rwrap->number_of_results, Qnil);
       }
     }
-    if (dbresults_rc == FAIL)
-      rb_warn("TinyTDS: Something in the dbresults() while loop set the return code to FAIL.\n");
+    if (dbresults_rc == FAIL) {
+      rb_warn(
+          "TinyTDS: Something in the dbresults() while loop set the return "
+          "code to FAIL.\n");
+    }
     userdata->dbsql_sent = 0;
   } else if (!NIL_P(block)) {
     unsigned long i;
@@ -549,16 +568,16 @@ static VALUE rb_tinytds_result_insert(VALUE self) {
     VALUE identity = Qnil;
     rb_tinytds_result_exec_helper(rwrap->client);
     dbcmd(rwrap->client, rwrap->cwrap->identity_insert_sql);
-    if (nogvl_dbsqlexec(rwrap->client) != FAIL
-      && nogvl_dbresults(rwrap->client) != FAIL
-      && DBROWS(rwrap->client) != FAIL) {
+    if (nogvl_dbsqlexec(rwrap->client) != FAIL && nogvl_dbresults(rwrap->client) != FAIL &&
+        DBROWS(rwrap->client) != FAIL) {
       while (nogvl_dbnextrow(rwrap->client) != NO_MORE_ROWS) {
         int col = 1;
         BYTE *data = dbdata(rwrap->client, col);
         DBINT data_len = dbdatlen(rwrap->client, col);
         int null_val = ((data == NULL) && (data_len == 0));
-        if (!null_val)
+        if (!null_val) {
           identity = LL2NUM(*(DBBIGINT *)data);
+        }
       }
     }
     return identity;
@@ -566,7 +585,6 @@ static VALUE rb_tinytds_result_insert(VALUE self) {
     return Qnil;
   }
 }
-
 
 // Lib Init
 
@@ -619,8 +637,8 @@ void init_tinytds_result() {
   opt_tenk = INT2NUM(10000);
   opt_onemil = INT2NUM(1000000);
   opt_onebil = INT2NUM(1000000000);
-  /* Encoding */
-  #ifdef HAVE_RUBY_ENCODING_H
-    binaryEncoding = rb_enc_find("binary");
-  #endif
+/* Encoding */
+#ifdef HAVE_RUBY_ENCODING_H
+  binaryEncoding = rb_enc_find("binary");
+#endif
 }

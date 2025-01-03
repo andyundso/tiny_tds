@@ -19,14 +19,10 @@ typedef struct {
   unsigned long number_of_rows;
 } tinytds_result_wrapper;
 
-
 // Lib Macros
 
 #define GET_RESULT_WRAPPER(self) \
   tinytds_result_wrapper *rwrap; \
   Data_Get_Struct(self, tinytds_result_wrapper, rwrap)
-
-
-
 
 #endif

@@ -49,5 +49,4 @@ VALUE rb_tinytds_raise_error(DBPROCESS *dbproc, tinytds_errordata error);
 #define GET_CLIENT_USERDATA(dbproc) \
   tinytds_client_userdata *userdata = (tinytds_client_userdata *)dbgetuserdata(dbproc);
 
-
 #endif
