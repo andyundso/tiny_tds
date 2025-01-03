@@ -25,7 +25,7 @@ if RUBY_PLATFORM =~ /mingw|mswin/ && RUBY_VERSION =~ /(\d+.\d+)/
   end
 
   add_dll_paths = proc do |paths, &block|
-    if path = paths.shift
+    if (path = paths.shift)
       add_dll_path.call(path) do
         add_dll_paths.call(paths, &block)
       end
