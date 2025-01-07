@@ -8,8 +8,9 @@ SPEC = Gem::Specification.load(File.expand_path('../tiny_tds.gemspec', __FILE__)
 
 CrossLibrary = Struct.new :platform, :openssl_config, :toolchain
 CrossLibraries = [
-	['x64-mingw-ucrt', 'mingw64', 'x86_64-w64-mingw32'],
-	['x64-mingw32', 'mingw64', 'x86_64-w64-mingw32'],
+	['x64-mingw-ucrt', 'mingw64'],
+	['x64-mingw32', 'mingw64'],
+  ['x86_64-linux-gnu', 'linux-x86_64'],
 ].map do |platform, openssl_config, toolchain|
 	CrossLibrary.new platform, openssl_config, toolchain
 end

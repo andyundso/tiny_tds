@@ -16,7 +16,6 @@ if gem_platform=with_config("cross-build")
   require 'mini_portile2'
 
   openssl_platform = with_config("openssl-platform")
-	toolchain = with_config("toolchain")
 
   class BuildRecipe < MiniPortile
     def initialize(name, version, files)
@@ -29,11 +28,11 @@ if gem_platform=with_config("cross-build")
 
     # this will yield all ports into the same directory, making our path configuration for the linker easier
     def port_path
-      "#{@target}/#{host}"
+      "#{@target}/#{RUBY_PLATFORM}"
     end
 
     def tmp_path
-      "tmp/#{host}/ports/#{@name}/#{@version}"
+      "tmp/#{RUBY_PLATFORM}/ports/#{@name}/#{@version}"
     end
 
     def cook_and_activate
@@ -70,14 +69,11 @@ if gem_platform=with_config("cross-build")
     end
 
     recipe.openssl_platform = openssl_platform
-    recipe.host = toolchain
     recipe.cook_and_activate
   end
 
   libiconv_recipe = BuildRecipe.new("libiconv", ICONV_VERSION, [ICONV_SOURCE_URI]).tap do |recipe|
     recipe.configure_options << "CFLAGS=-fPIC" if RUBY_PLATFORM =~ /linux/
-    recipe.host = toolchain
-
     recipe.cook_and_activate
   end
 
@@ -88,18 +84,17 @@ if gem_platform=with_config("cross-build")
     # removing one or the other leads to build failures in any case of FreeTDS
     recipe.configure_options << "CFLAGS=-fPIC" if RUBY_PLATFORM =~ /linux/
     recipe.configure_options << "LDFLAGS=-L#{openssl_recipe.path}/lib"
-		recipe.configure_options << "LIBS=-liconv -lssl -lcrypto #{"-lwsock32 -lgdi32 -lws2_32 -lcrypt32" if RUBY_PLATFORM =~ /mingw|mswin/}"
+		recipe.configure_options << "LIBS=-liconv -lssl -lcrypto #{"-lwsock32 -lgdi32 -lws2_32 -lcrypt32" if RUBY_PLATFORM =~ /mingw|mswin/} #{"-ldl -lpthread" if RUBY_PLATFORM =~ /linux/}"
     recipe.configure_options << "CPPFLAGS=-I#{openssl_recipe.path}/include"
 
     recipe.configure_options << "OPENSSL_CFLAGS=-L#{openssl_recipe.path}/lib"
-    recipe.configure_options << "OPENSSL_LIBS=-lssl -lcrypto #{"-lwsock32 -lgdi32 -lws2_32 -lcrypt32" if RUBY_PLATFORM =~ /mingw|mswin/}"
+    recipe.configure_options << "OPENSSL_LIBS=-lssl -lcrypto #{"-lwsock32 -lgdi32 -lws2_32 -lcrypt32" if RUBY_PLATFORM =~ /mingw|mswin/} #{"-ldl -lpthread" if RUBY_PLATFORM =~ /linux/}"
 
     recipe.configure_options << "--with-openssl=#{openssl_recipe.path}"
     recipe.configure_options << "--with-libiconv-prefix=#{libiconv_recipe.path}"
     recipe.configure_options << "--disable-odbc"
     recipe.configure_options << "--enable-sspi" if RUBY_PLATFORM =~ /mingw|mswin/
 
-    recipe.host = toolchain
     recipe.cook_and_activate
   end
 
@@ -120,6 +115,11 @@ if gem_platform=with_config("cross-build")
     find_library("ws2_32", nil)
     find_library("gdi32", nil)
     find_library("wsock32", nil)
+  end
+
+  if RUBY_PLATFORM =~ /linux/
+    find_library("dl", nil)
+    find_library("pthread", nil)
   end
 
   find_library("crypto", nil)
