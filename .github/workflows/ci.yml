@@ -371,7 +371,9 @@ jobs:
               gem update --system 3.3.22 &&
               ${{ matrix.bootstrap }}
               gem install --no-document ./gems/tiny_tds-$(cat VERSION)-${{ matrix.platform }}.gem &&
-              ruby -e \"require 'tiny_tds'; puts TinyTds::Gem.root_path\"
+              ruby -e \"require 'tiny_tds'; puts TinyTds::Gem.root_path\" &&
+              tsql-ttds -C &&
+              defncopy-ttds
             "
 
   test-linux:

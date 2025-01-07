@@ -25,7 +25,7 @@ module TinyTds
     end
 
     def run(*args)
-      with_ports_paths do
+      with_exe_path do
         return nil unless path
         Kernel.system Shellwords.join(args.unshift(path))
         $CHILD_STATUS.to_i
@@ -43,15 +43,15 @@ module TinyTds
     private
 
     def search_paths
-      ENV['PATH'].split File::PATH_SEPARATOR
+      ENV['PATH'].split(File::PATH_SEPARATOR) + [Gem.exe_path]
     end
 
-    def with_ports_paths
+    def with_exe_path
       old_path = ENV['PATH']
 
       begin
         ENV['PATH'] = [
-          Gem.ports_bin_paths,
+          Gem.exe_path,
           old_path
         ].flatten.join File::PATH_SEPARATOR
 
@@ -66,12 +66,11 @@ module TinyTds
     end
 
     def find_exe
-      Gem.ports_bin_paths.each do |bin|
-        @exts.each do |ext|
-          f = File.join bin, "#{name}#{ext}"
-          return f if File.exist?(f)
-        end
+      @exts.each do |ext|
+        f = File.join Gem.exe_path, "#{name}#{ext}"
+        return f if File.exist?(f)
       end
+
       nil
     end
 

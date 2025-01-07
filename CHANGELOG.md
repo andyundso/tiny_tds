@@ -1,6 +1,7 @@
 ## 3.2.0
 
 * Add precompiled gem for Linux (for GLIBC / MUSL, 64-bit x86 and ARM).
+* Fix wrappers for `tsql` and `defncopy` utility.
 
 ## 3.1.0
 

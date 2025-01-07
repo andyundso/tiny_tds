@@ -98,6 +98,11 @@ if gem_platform=with_config("cross-build")
     recipe.cook_and_activate
   end
 
+  ["defncopy", "tsql"].each do |binary_name|
+    full_binary_name = RUBY_PLATFORM =~ /mingw|mswin/ ? "#{binary_name}.exe" : binary_name
+    FileUtils.cp("#{freetds_recipe.path}/bin/#{full_binary_name}", "../../../../exe")
+  end
+
   ENV["LDFLAGS"] = "-Wl,-rpath -Wl,#{openssl_recipe.path}/lib"
   dir_config('freetds', "#{freetds_recipe.path}/include", "#{freetds_recipe.path}/lib")
 
