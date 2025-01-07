@@ -1,3 +1,7 @@
+## 3.2.0
+
+* Add precompiled gem for Linux (for GLIBC / MUSL, 64-bit x86 and ARM).
+
 ## 3.1.0
 
 * Add Ruby 3.4 to the cross compile list
