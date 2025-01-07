@@ -16,6 +16,7 @@ jobs:
           - "x86_64-linux-gnu"
           - "x86_64-linux-musl"
           - "aarch64-linux-gnu"
+          - "aarch64-linux-musl"
     name: cross-compile
     runs-on: ubuntu-22.04
     steps:
@@ -322,9 +323,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - "x86_64-linux-gnu"
-        - "x86_64-linux-musl"
-        - "aarch64-linux-gnu"
+          - "x86_64-linux-gnu"
+          - "x86_64-linux-musl"
+          - "aarch64-linux-gnu"
+          - "aarch64-linux-musl"
 
         ruby-version:
           - "2.7"
@@ -341,6 +343,11 @@ jobs:
 
           - platform: aarch64-linux-gnu
             docker_platform: "--platform=linux/arm64"
+
+          - platform: aarch64-linux-musl
+            docker_platform: "--platform=linux/arm64"
+            docker_tag: "-alpine"
+            bootstrap: "apk add -U build-base &&" # required to compile bigdecimal on Ruby 2.7
 
     name: install-linux
     runs-on: ubuntu-22.04
