@@ -19,7 +19,7 @@ jobs:
           - "aarch64-linux-musl"
 
     name: cross-compile
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -387,7 +387,7 @@ jobs:
             bootstrap: "apk add -U build-base &&"
 
     name: install-linux
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -437,7 +437,7 @@ jobs:
           - "3.3"
           - "3.4"
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -500,7 +500,7 @@ jobs:
           - "3.4"
 
     name: install-linux-native
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -576,7 +576,7 @@ jobs:
 
   standardrb:
     name: standardrb
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
