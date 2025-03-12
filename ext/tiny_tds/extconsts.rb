@@ -1,5 +1,5 @@
 # renovate: datasource=repology depName=homebrew/libiconv versioning=loose
-ICONV_VERSION = ENV["TINYTDS_ICONV_VERSION"] || "1.17"
+ICONV_VERSION = ENV["TINYTDS_ICONV_VERSION"] || "1.18"
 ICONV_SOURCE_URI = "http://ftp.gnu.org/pub/gnu/libiconv/libiconv-#{ICONV_VERSION}.tar.gz"
 
 # renovate: datasource=repology depName=homebrew/openssl@3 versioning=loose
