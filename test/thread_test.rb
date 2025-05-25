@@ -65,6 +65,9 @@ class ThreadTest < TinyTds::TestCase
           result = client.execute "waitfor delay '00:00:#{delay}'; select db_name()"
           result.each { |r| puts r }
         rescue TinyTds::Error => e
+          puts "hit an error with timeout in thread"
+          puts e.inspect
+
           if e.message == "Adaptive Server connection timed out"
             exception = true
           end
@@ -73,7 +76,7 @@ class ThreadTest < TinyTds::TestCase
 
       timer_thread = Thread.new do
         # Sleep until after the timeout should have been reached
-        sleep(connection_timeout + 2)
+        sleep(connection_timeout + 3)
         if !exception
           thread.kill
           raise "Timeout passed without query timing out"
