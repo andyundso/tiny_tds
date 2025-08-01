@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/ruby:2.7
+FROM mcr.microsoft.com/devcontainers/ruby:3.2
 
 # Install the SQL Server command-line tools and the Artistic Style code formatter
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc \
