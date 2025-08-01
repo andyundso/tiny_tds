@@ -108,7 +108,6 @@ jobs:
           - false
           - true
         mssql-version:
-          - 2017
           - 2019
           - 2022
         ruby-version:
