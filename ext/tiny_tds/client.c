@@ -147,6 +147,7 @@ static void nogvl_setup(tinytds_client_userdata *userdata)
 
 static void nogvl_cleanup(DBPROCESS *client)
 {
+  printf("I arrive in nogvl cleanup!\n");
   GET_CLIENT_USERDATA(client);
   userdata->nonblocking = 0;
   userdata->timing_out = 0;
@@ -158,6 +159,8 @@ static void nogvl_cleanup(DBPROCESS *client)
 
   for (i = 0; i < userdata->nonblocking_errors_length; i++) {
     tinytds_errordata error = userdata->nonblocking_errors[i];
+    printf("%s\n", error.error);
+    printf("%s\n", error.source);
 
     // lookahead to drain any info messages ahead of raising error
     if (!error.is_message) {
@@ -943,8 +946,9 @@ struct dbopen_args {
   const char *dataserver;
 };
 
-static void * dbopen_without_gvl(void *ptr)
+static void *dbopen_without_gvl(void *ptr)
 {
+  printf("doing the dbopen outside of the gvl!\n");
   struct dbopen_args *args = (struct dbopen_args *)ptr;
   return dbopen(args->login, args->dataserver);
 }
@@ -1018,13 +1022,11 @@ static VALUE rb_tinytds_connect(VALUE self)
   }
 
   struct dbopen_args open_args;
-
   open_args.login = cwrap->login;
-
   open_args.dataserver = StringValueCStr(dataserver);
 
+  printf("doing the nogvl setup\n");
   nogvl_setup(cwrap->userdata);
-
   cwrap->client = (DBPROCESS *)rb_thread_call_without_gvl(
                     dbopen_without_gvl,
                     &open_args,

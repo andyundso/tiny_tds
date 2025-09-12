@@ -44,9 +44,11 @@ class ThreadTest < TinyTds::TestCase
       @numthreads.times do |i|
         threads << Thread.new do
           @pool.with do |client|
+            puts client.object_id
             result = client.execute "select dbname()"
             result.each { |r| puts r }
-          rescue => _e
+          rescue => e
+            puts e.inspect
             # We are throwing an error on purpose here since 0.6.1 would
             # segfault on errors thrown in threads
           end
