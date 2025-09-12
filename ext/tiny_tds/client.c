@@ -137,9 +137,8 @@ static void dbcancel_ubf(DBPROCESS *client)
   userdata->dbcancel_sent = 1;
 }
 
-static void nogvl_setup(DBPROCESS *client)
+static void nogvl_setup(tinytds_client_userdata *userdata)
 {
-  GET_CLIENT_USERDATA(client);
   userdata->nonblocking = 1;
   userdata->nonblocking_errors_length = 0;
   userdata->nonblocking_errors = malloc(ERRORS_STACK_INIT_SIZE * sizeof(tinytds_errordata));
@@ -183,8 +182,9 @@ static void nogvl_cleanup(DBPROCESS *client)
 
 static RETCODE nogvl_dbnextrow(DBPROCESS * client)
 {
+  GET_CLIENT_USERDATA(client);
   int retcode = FAIL;
-  nogvl_setup(client);
+  nogvl_setup(userdata);
   retcode = NOGVL_DBCALL(dbnextrow, client);
   nogvl_cleanup(client);
   return retcode;
@@ -192,8 +192,9 @@ static RETCODE nogvl_dbnextrow(DBPROCESS * client)
 
 static RETCODE nogvl_dbresults(DBPROCESS *client)
 {
+  GET_CLIENT_USERDATA(client);
   int retcode = FAIL;
-  nogvl_setup(client);
+  nogvl_setup(userdata);
   retcode = NOGVL_DBCALL(dbresults, client);
   nogvl_cleanup(client);
   return retcode;
@@ -201,8 +202,9 @@ static RETCODE nogvl_dbresults(DBPROCESS *client)
 
 static RETCODE nogvl_dbsqlexec(DBPROCESS *client)
 {
+  GET_CLIENT_USERDATA(client);
   int retcode = FAIL;
-  nogvl_setup(client);
+  nogvl_setup(userdata);
   retcode = NOGVL_DBCALL(dbsqlexec, client);
   nogvl_cleanup(client);
   return retcode;
@@ -212,7 +214,7 @@ static RETCODE nogvl_dbsqlok(DBPROCESS *client)
 {
   int retcode = FAIL;
   GET_CLIENT_USERDATA(client);
-  nogvl_setup(client);
+  nogvl_setup(userdata);
   retcode = NOGVL_DBCALL(dbsqlok, client);
   nogvl_cleanup(client);
   userdata->dbsqlok_sent = 1;
@@ -936,6 +938,16 @@ static void *dbuse_without_gvl(void *ptr)
   return NULL;
 }
 
+struct dbopen_args {
+  LOGINREC *login;
+  const char *dataserver;
+};
+
+static void * dbopen_without_gvl(void *ptr)
+{
+  struct dbopen_args *args = (struct dbopen_args *)ptr;
+  return dbopen(args->login, args->dataserver);
+}
 
 static VALUE rb_tinytds_connect(VALUE self)
 {
@@ -1005,9 +1017,31 @@ static VALUE rb_tinytds_connect(VALUE self)
     DBSETLUTF16(cwrap->login, 0);
   }
 
-  cwrap->client = dbopen(cwrap->login, StringValueCStr(dataserver));
+  struct dbopen_args open_args;
+
+  open_args.login = cwrap->login;
+
+  open_args.dataserver = StringValueCStr(dataserver);
+
+  nogvl_setup(cwrap->userdata);
+
+  cwrap->client = (DBPROCESS *)rb_thread_call_without_gvl(
+                    dbopen_without_gvl,
+                    &open_args,
+                    // compared to any other database call, we cannot cancel the login to the database
+                    // in any meaningful way, so unblock function remains empty
+                    NULL,
+                    NULL
+                  );
 
   if (cwrap->client) {
+    // nogvl_cleanup will retrieve the user data via the client
+    // as the client will be used to find out details about an error
+    // in order for the client to have a pointer to our userdata for information
+    // dbsetuserdata has to be called first
+    dbsetuserdata(cwrap->client, (BYTE*)cwrap->userdata);
+    nogvl_cleanup(cwrap->client);
+
     if (dbtds(cwrap->client) < 11) {
       rb_raise(cTinyTdsError, "connecting with a TDS version older than 7.3!");
     }
@@ -1028,7 +1062,6 @@ static VALUE rb_tinytds_connect(VALUE self)
       }
     }
 
-    dbsetuserdata(cwrap->client, (BYTE*)cwrap->userdata);
     dbsetinterrupt(cwrap->client, check_interrupt, handle_interrupt);
     cwrap->userdata->closed = 0;
 
@@ -1039,7 +1072,7 @@ static VALUE rb_tinytds_connect(VALUE self)
 
       // in case of any errors, the tinytds_err_handler will be called
       // so we do not have to check the return code here
-      nogvl_setup(cwrap->client);
+      nogvl_setup(cwrap->userdata);
       rb_thread_call_without_gvl(
         dbuse_without_gvl,
         &use_args,
@@ -1051,6 +1084,8 @@ static VALUE rb_tinytds_connect(VALUE self)
 
     cwrap->encoding = rb_enc_find(StringValueCStr(charset));
     cwrap->identity_insert_sql = "SELECT CAST(SCOPE_IDENTITY() AS bigint) AS Ident";
+  } else {
+    rb_raise(cTinyTdsError, "Unable to connect to SQL Server!");
   }
 
   return self;

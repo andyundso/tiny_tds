@@ -11,6 +11,7 @@
 * Renamed `tds_version` and `tds_version_info` to `server_version` and `server_version_info`
 * Separate `#new` and `#connect`
   * Instead, before running `#do`, `#execute` or `#insert`, `tiny_tds` will check if the connection is active and re-connect if needed.
+* `#connect` hands off the GVL when communicating with the server. Fixes #421.
 
 ## 3.3.0
 
