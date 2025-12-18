@@ -2,6 +2,7 @@
 
 * Drop support for Ruby < 3.2
 * Drop support for SQL Server < 2019
+* Drop support for TDS version < 7.4
 * Removed lazy-loading of results for `execute`
 * Moved `#do`, `#insert` and `#execute` methods to the `TinyTds::Client` class
   * `TinyTds::Result` is now a pure Ruby class

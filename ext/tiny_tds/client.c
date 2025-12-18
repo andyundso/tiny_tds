@@ -1009,7 +1009,7 @@ static VALUE rb_tinytds_connect(VALUE self)
 
   if (cwrap->client) {
     if (dbtds(cwrap->client) < 11) {
-      rb_raise(cTinyTdsError, "connecting with a TDS version older than 7.3!");
+      rb_raise(cTinyTdsError, "connecting with a TDS version older than 7.4!");
     }
 
     VALUE transposed_encoding, timeout_string;

@@ -90,7 +90,8 @@ if (gem_platform = with_config("cross-build"))
           "--host=#{@host}",
           "--enable-shared",
           "--disable-static",
-          "--disable-odbc"
+          "--disable-odbc",
+          "--with-tdsver=7.4"
         ]
       end
     end
