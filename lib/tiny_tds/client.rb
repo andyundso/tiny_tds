@@ -59,6 +59,10 @@ module TinyTds
       !closed? && !dead?
     end
 
+    def escape(string)
+      string.gsub(/\'/, "''").encode(encoding)
+    end
+
     private
 
     def parse_username(username:, azure: false, host: nil)

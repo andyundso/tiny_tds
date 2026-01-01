@@ -5,8 +5,7 @@
 VALUE cTinyTdsClient;
 extern VALUE mTinyTds, cTinyTdsError;
 static ID intern_source_eql, intern_severity_eql, intern_db_error_number_eql, intern_os_error_number_eql;
-static ID intern_new, intern_dup, intern_local_offset, intern_gsub, intern_call, intern_active, intern_connect;
-VALUE opt_escape_regex, opt_escape_dblquote;
+static ID intern_new, intern_dup, intern_local_offset,  intern_call, intern_active, intern_connect;
 
 static ID id_ivar_fields, id_ivar_rows, id_ivar_return_code, id_ivar_affected_rows, id_ivar_default_query_options, intern_bigd, intern_divide;
 static ID sym_as, sym_array, sym_timezone, sym_empty_sets, sym_local, sym_utc, intern_utc, intern_local, intern_as, intern_empty_sets, intern_timezone;
@@ -906,17 +905,6 @@ static VALUE rb_tinytds_encoding(VALUE self)
   return rb_enc_from_encoding(cwrap->encoding);
 }
 
-static VALUE rb_tinytds_escape(VALUE self, VALUE string)
-{
-  VALUE new_string;
-  GET_CLIENT_WRAPPER(self);
-
-  Check_Type(string, T_STRING);
-  new_string = rb_funcall(string, intern_gsub, 2, opt_escape_regex, opt_escape_dblquote);
-  rb_enc_associate(new_string, cwrap->encoding);
-  return new_string;
-}
-
 static VALUE rb_tinytds_identity_sql(VALUE self)
 {
   GET_CLIENT_WRAPPER(self);
@@ -1079,7 +1067,6 @@ void init_tinytds_client()
   rb_define_method(cTinyTdsClient, "insert", rb_tiny_tds_insert, 1);
   rb_define_method(cTinyTdsClient, "do", rb_tiny_tds_do, 1);
   rb_define_method(cTinyTdsClient, "encoding", rb_tinytds_encoding, 0);
-  rb_define_method(cTinyTdsClient, "escape", rb_tinytds_escape, 1);
   rb_define_method(cTinyTdsClient, "return_code", rb_tinytds_return_code, 0);
   rb_define_method(cTinyTdsClient, "identity_sql", rb_tinytds_identity_sql, 0);
   rb_define_method(cTinyTdsClient, "connect", rb_tinytds_connect, 0);
@@ -1092,14 +1079,7 @@ void init_tinytds_client()
   intern_new = rb_intern("new");
   intern_dup = rb_intern("dup");
   intern_local_offset = rb_intern("local_offset");
-  intern_gsub = rb_intern("gsub");
   intern_call = rb_intern("call");
-  /* Escape Regexp Global */
-  opt_escape_regex = rb_funcall(rb_cRegexp, intern_new, 1, rb_str_new2("\\\'"));
-  opt_escape_dblquote = rb_str_new2("''");
-
-  rb_global_variable(&opt_escape_regex);
-  rb_global_variable(&opt_escape_dblquote);
 
   intern_bigd = rb_intern("BigDecimal");
   intern_divide = rb_intern("/");
