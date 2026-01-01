@@ -36,7 +36,6 @@ typedef struct {
   RETCODE return_code;
   DBPROCESS *client;
   short int closed;
-  VALUE charset;
   tinytds_client_userdata *userdata;
   const char *identity_insert_sql;
   rb_encoding *encoding;

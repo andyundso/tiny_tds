@@ -1012,7 +1012,7 @@ static VALUE rb_tinytds_connect(VALUE self)
       rb_raise(cTinyTdsError, "connecting with a TDS version older than 7.3!");
     }
 
-    VALUE transposed_encoding, timeout_string;
+    VALUE timeout_string;
 
     cwrap->closed = 0;
 
