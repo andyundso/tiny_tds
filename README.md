@@ -110,7 +110,7 @@ Creating a new client takes keyword arguments. For valid iconv encoding options,
 * :tds_version - TDS version. Defaults to "7.3".
 * :login_timeout - Seconds to wait for login. Default to 60 seconds.
 * :timeout - Seconds to wait for a response to a SQL command. Default 5 seconds. Timeouts caused by network failure will raise a timeout error 1 second after the configured timeout limit is hit (see [#481](https://github.com/rails-sqlserver/tiny_tds/pull/481) for details).
-* :encoding - Any valid iconv value like CP1251 or ISO-8859-1. Default UTF-8.
+* :charset - Any valid iconv value like CP1251 or ISO-8859-1. Default UTF-8.
 * :azure - Pass true to signal that you are connecting to azure.
 * :contained - Pass true to signal that you are connecting with a contained database user.
 * :use_utf16 - Instead of using UCS-2 for database wide character encoding use UTF-16. Newer Windows versions use this encoding instead of UCS-2. Default true.
