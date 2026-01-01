@@ -1049,6 +1049,11 @@ static VALUE rb_tinytds_connect(VALUE self)
       nogvl_cleanup(cwrap->client);
     }
 
+    // note: this is an optimization
+    // we could also initialize the Encoding from Ruby land using "Encoding.find" and assign it to an instance variable
+    // but the rb_enc_associate wants a pointer to a rb_encoding constant, which we would have to convert to each time using rb_to_encoding
+    // so it is more efficient to store the pointer to the rb_encoding object in the client wrapper as it is used much more compared
+    // to the encoding object itself
     cwrap->encoding = rb_enc_find(StringValueCStr(charset));
     cwrap->identity_insert_sql = "SELECT CAST(SCOPE_IDENTITY() AS bigint) AS Ident";
   }
